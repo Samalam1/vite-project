@@ -4,12 +4,29 @@ import { RosterPositionIcon } from "./RosterPostitionIcon";
 import { useInView } from "react-intersection-observer";
 
 
-const ignoreList = ['image','characterClass',
+const ingoreColumnList = ['image','characterClass',
     "rushChain1","rushChain2","rushChain3","rushChain4",
 "skillOne","skillTwo","blastOne","blastTwo","ultimateBlast"]
 
+
+const invertScoringList = ['cost','armorBreak','kiBlastCost'];
+
 function IsIgnored(key:string) {
-    return ignoreList.includes(key);
+    return ingoreColumnList.includes(key);
+}
+
+
+
+export function StarRating({rating}:{rating:number}) {
+
+    return <div className="star-container">
+        <div className="star-list ">
+
+        </div>
+        <div className="star-list front" style={{maxWidth:(rating/100)*5 + "em"}} >
+
+        </div>
+    </div>
 }
 
 
@@ -22,6 +39,63 @@ export function FighterTable({fighters}:{fighters:Fighter[]}) {
     const sortDirRef = useRef<number>(-1);
     const [pinnedFighters,setPinnedFighters] = useState<string[]>([]);
 
+    const minMaxDict = useMemo(()=>{
+
+        let dict:any = {};
+
+        Object.keys(CreateBlankFighter()).forEach((key)=>{
+
+            let max = -99999;
+            let min = 99999;
+       
+
+            for(let i = 0;i<fighters.length;i++){
+             
+                let parsed = parseFloat((fighters[i] as any)[key].replace(',',''));
+
+                if(parsed == 999 ){
+                    continue; // this is equilivant to infinity in the data set so ignore
+                }
+
+                if(isNaN(parsed))
+                    continue;
+                if(parsed>max)
+                    max = parsed;
+                if(parsed<min)
+                    min = parsed;
+                
+            }
+            dict[key] = {min,max};
+        })
+
+        return dict;
+
+    },[fighters])
+
+
+    const GetRelativeValue = (key:string,fighter:Fighter) => {
+
+
+        let val = parseFloat((fighter as any)[key].replace(',',''));
+
+        if(isNaN(val))
+            return undefined;
+
+        let def = minMaxDict[key];
+        if(!def)
+            return undefined;
+
+        let min = def.min;
+        let max = def.max;
+
+        let num = Math.round(((val-min)/(max-min)) *100);
+
+      if(invertScoringList.includes(key))
+            num = 100-num;
+
+        return num;
+
+    }
     // const [widths,setWidths] = useState<number[]>([]);
 
     function SortByKey(key:string,ignoreToggle:boolean = false) {
@@ -206,7 +280,7 @@ export function FighterTable({fighters}:{fighters:Fighter[]}) {
                 {filteredFighters.sort(SortFighters).map((fighter,index)=>{  
                     
                     
-                    return <FighterRow  onSetPin={TogglePin} index={index} key={fighter.id} fighter={fighter} isPinned={pinnedFighters.includes(fighter.id)}  />
+                    return <FighterRow calcRelative={GetRelativeValue} onSetPin={TogglePin} index={index} key={fighter.id} fighter={fighter} isPinned={pinnedFighters.includes(fighter.id)}  />
             })}
             </tbody>
         </table>
@@ -304,8 +378,10 @@ export function FighterTable({fighters}:{fighters:Fighter[]}) {
 
 
 
-function FighterRow({fighter,isPinned,onSetPin,index}:{
+
+function FighterRow({fighter,isPinned,onSetPin,index,calcRelative}:{
   
+    calcRelative:(key:string,fighter:Fighter)=>number|undefined,
     onSetPin:(fighter:Fighter)=>void,fighter:Fighter,isPinned:boolean,index:number}) {
         const { ref, inView } = useInView();
     let style:any = {transition:" .3s",top:"-100px"};
@@ -370,6 +446,15 @@ function FighterRow({fighter,isPinned,onSetPin,index}:{
 
                 }
 
+                let relative = calcRelative(key,fighter);
+                if(relative!=undefined){
+                    return <td>
+                        <div>{val}</div>
+                        <StarRating rating={relative}/>
+                        {/* <div className="percentile-text"> {relative/10}</div> */}
+                    </td>
+                }
+
                 return <td>{val} </td>
             })
         }
@@ -421,6 +506,8 @@ function GetLabelFromKey(key:string) {
     return str;
 }
 
+
+
 function TableHeader({IsFlipped,currentKey,onSort,children}:{IsFlipped:boolean, currentKey:string,onSort:(key:string)=>void,children?:any}) {
 
     const fighterTemplate = useMemo(() => {return CreateBlankFighter()}, []);
@@ -442,10 +529,10 @@ function TableHeader({IsFlipped,currentKey,onSort,children}:{IsFlipped:boolean, 
                     else if(index<=9){
                         clrClass = "defence"
                     }
-                    else if(index<15){
+                    else if(index<16){
                         clrClass = "attack"
                     }
-                    else if(index<17){
+                    else if(index<18){
                         clrClass = "special"
                     }
                     else if(index<17){
