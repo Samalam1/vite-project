@@ -538,15 +538,13 @@ function TableHeader({IsFlipped,currentKey,onSort,children}:{IsFlipped:boolean, 
                     else if(index<17){
                         clrClass = "special"
                     }
-                    else if(index<28){
+                    else if(index<29){
                         clrClass = "ki"
                     }
-                    else if(index<32){
+                    else if(index<33){
                         clrClass = "skill"
                     }
-                    else if(index<32){
-                        clrClass = "skill"
-                    }
+             
             
 
                     let extra = "";
